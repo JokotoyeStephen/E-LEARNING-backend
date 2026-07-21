@@ -1,42 +1,34 @@
-const axios = require('axios')
+const axios = require("axios")
 
-const GEMINI_MODEL = 'gemini-2.5-pro'
+const GROQ_MODEL = "llama-3.3-70b-versatile"
 
-/**
- * Generic Gemini request
- */
-async function callGemini(prompt, maxTokens = 1500) {
+async function callGroq(prompt, maxTokens = 1500) {
   try {
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      "https://api.groq.com/openai/v1/chat/completions",
       {
-        contents: [
+        model: GROQ_MODEL,
+        messages: [
           {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
+            role: "user",
+            content: prompt,
           },
         ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: maxTokens,
-        },
+        temperature: 0.7,
+        max_tokens: maxTokens,
       },
       {
         headers: {
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
           "Content-Type": "application/json",
         },
       }
     )
 
-    return (
-      response.data.candidates?.[0]?.content?.parts?.[0]?.text || ""
-    )
+    return response.data.choices[0].message.content
   } catch (err) {
     console.error(
-      "Gemini API Error:",
+      "Groq API Error:",
       err.response?.data || err.message
     )
     throw err
@@ -78,10 +70,10 @@ ${guide[difficulty]}
 
 Rules:
 
-- Exactly 4 options
-- Exactly one correct answer
-- Include explanation
-- Return ONLY JSON
+- Exactly 4 options.
+- Exactly one correct answer.
+- Include explanation.
+- Return ONLY valid JSON.
 
 Example:
 
@@ -95,7 +87,7 @@ Example:
 ]
 `
 
-  const raw = await callGemini(prompt, 2000)
+  const raw = await callGroq(prompt, 2000)
 
   let questions
 
@@ -103,9 +95,9 @@ Example:
     questions = JSON.parse(
       raw.replace(/```json/g, "").replace(/```/g, "").trim()
     )
-  } catch (e) {
+  } catch (err) {
     console.log(raw)
-    throw new Error("Gemini returned invalid JSON.")
+    throw new Error("Groq returned invalid JSON.")
   }
 
   return questions.map((q) => ({
@@ -123,7 +115,7 @@ Example:
 }
 
 /**
- * Personalized feedback
+ * Personalized quiz feedback
  */
 async function generateFeedbackAI({
   studentName,
@@ -155,14 +147,14 @@ ${difficulty}
 Score:
 ${score}%
 
-Topic results:
+Topic Results:
 
 ${topicSummary}
 
-Weak topics:
+Weak Topics:
 ${weakTopics.join(", ") || "None"}
 
-Write 3-4 sentences.
+Write 3-4 encouraging sentences.
 
 Mention:
 
@@ -175,11 +167,11 @@ Mention:
 Plain text only.
 `
 
-  return await callGemini(prompt, 500)
+  return await callGroq(prompt, 500)
 }
 
 /**
- * Learnly AI Chatbot
+ * Learnly AI Tutor
  */
 async function chatWithTutorAI(message, history = []) {
   const historyText = history
@@ -195,17 +187,21 @@ You are Learnly Assistant.
 
 You help students with:
 
-- learning
+- programming
+- web development
+- databases
+- networking
+- operating systems
+- mathematics
 - quizzes
 - certificates
-- badges
 - roadmap
 - study advice
 - motivation
 
-Never invent student scores.
+Do not invent scores or progress.
 
-Keep replies between 2 and 4 sentences.
+Keep answers short.
 
 ${historyText}
 
@@ -215,7 +211,7 @@ ${message}
 Tutor:
 `
 
-  return await callGemini(prompt, 500)
+  return await callGroq(prompt, 500)
 }
 
 module.exports = {
