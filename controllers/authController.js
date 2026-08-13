@@ -34,6 +34,8 @@ exports.register = async (req, res, next) => {
     })
 
     try {
+      console.log("reach here");
+      
       await sendVerificationEmail(email, name, code)
     } catch (mailErr) {
       console.error('Failed to send verification email:', mailErr.message)
